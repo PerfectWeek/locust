@@ -1,0 +1,63 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}-locust-master"
+  labels:
+    app: "{{ .Release.Name }}-locust"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+    role: locust-master
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: locust-master
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        role: locust-master
+    spec:
+      containers:
+      - image: grubykarol/locust:0.12.0-python3.7-alpine3.9
+        imagePullPolicy: IfNotPresent
+        name: locust-master
+        env:
+          - name: ATTACKED_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Release.Name }}-locust-cm"
+                key: ATTACKED_HOST
+          - name: LOCUST_MODE
+            value: MASTER
+          - name: LOCUST_OPTS
+            value: --print-stats
+        volumeMounts:
+          - mountPath: /locust
+            name: locust-scripts
+        ports:
+        - containerPort: 5557
+          name: comm
+        - containerPort: 5558
+          name: comm-plus-1
+        - containerPort: 8089
+          name: web-ui
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: locust-scripts
+        configMap:
+          name: "{{ .Release.Name }}-script-cm"

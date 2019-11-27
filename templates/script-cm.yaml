@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Release.Name }}-script-cm"
+  labels:
+    app: "{{ .Release.Name }}-locust"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+data:
+  locustfile.py: |-
+{{ .Files.Get "resources/worker.py" | indent 4 }}
